@@ -22,7 +22,7 @@ def index_archive(path, blobs):
     def add(stream):
         data=stream.read()
         blobs.setdefault(digest(data),data)
-    if path.name.endswith(".gguf"):
+    if path.name.startswith("cpython-") or path.name.endswith(".gguf"):
         with path.open("rb") as source:add(source)
     elif path.suffix==".zip":
         with zipfile.ZipFile(path) as bundle:
@@ -42,6 +42,7 @@ def main():
     parser.add_argument("output",type=Path)
     parser.add_argument("--cache",type=Path)
     parser.add_argument("--upload",action="store_true")
+    parser.add_argument("--tag",default="v0.2.0")
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(args.recipe) as bundle:
@@ -79,6 +80,6 @@ def main():
                 if hashlib.file_digest(src,"sha256").hexdigest()!=meta["sha256"]:raise ValueError("Release checksum mismatch: "+archive)
             print("Verified",archive,flush=True)
             if args.upload:
-                subprocess.run(["gh","release","upload","v0.1.0",str(dest),"--repo","jonaskuusela393-ctrl/local-desk-portable","--clobber"],check=True)
+                subprocess.run(["gh","release","upload",args.tag,str(dest),"--repo","jonaskuusela393-ctrl/local-desk-portable","--clobber"],check=True)
 
 if __name__=="__main__":main()
