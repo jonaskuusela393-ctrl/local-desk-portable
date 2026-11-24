@@ -36,14 +36,17 @@ with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
         env={**os.environ,"XDG_STATE_HOME":str(root/"state"),"XDG_CACHE_HOME":str(root/"cache"),"XDG_CONFIG_HOME":str(root/"config"),"PYTHONIOENCODING":"utf8","LOCAL_DESK_MODEL_HOME":str(root/"library")}
         project=root/"project";project.mkdir()
         (project/"sample.txt").write_text("release sample")
-        def ask(text):
-            res=subprocess.run([str(cli),"-C",str(project),"--ask",text],env=env,capture_output=True,timeout=180)
+        def ask(*questions):
+            res=subprocess.run([str(cli),"-C",str(project),*(item for question in questions for item in ("--ask",question))],env=env,capture_output=True,timeout=180)
             if res.returncode:raise RuntimeError(res.stderr.decode(errors="replace"))
             return res.stdout.decode(errors="replace")
         assert "release sample" in ask("/read sample.txt")
         assert "smol-360m" in ask("/models fit")
         assert "release sample" in ask("/resume latest") or "smol-360m" in ask("/resume latest")
         assert arch in ask("/mcp call desk system_info {}")
-        reply=ask("/chat What is 2 plus 2? Reply with just the number.")
-        assert reply.strip() and ("4" in reply or "four" in reply.lower()),reply
+        reply=ask("/chat What is 2 plus 2? Reply with just the number.","/status")
+        generation, marker, stats = reply.partition("Last generation ")
+        assert generation.splitlines()[0].strip() and marker and "tokens/s" in stats, reply
+        assert float(stats.split()[0]) > 0, stats
+        print("Starter model arithmetic sample:",generation.splitlines()[0])
         print(target,"model, workspace, memory, MCP and catalog passed")
