@@ -1,9 +1,16 @@
 name: Assemble local release packages
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: Reassemble archives from verified inputs
+        type: boolean
+        default: true
 permissions:
   contents: write
 jobs:
   packages:
+    if: inputs.rebuild
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -21,8 +28,9 @@ jobs:
           /usr/bin/python3 release_assemble.py release-recipe.zip archives --upload --tag v0.2.0
   check:
     needs: packages
+    if: always() && (needs.packages.result == 'success' || needs.packages.result == 'skipped')
     permissions:
-      contents: read
+      contents: write
     strategy:
       fail-fast: false
       matrix:
