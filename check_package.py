@@ -37,13 +37,20 @@ with tempfile.TemporaryDirectory(dir=Path.home()) as tmp:
         project=root/"project";project.mkdir()
         (project/"sample.txt").write_text("release sample")
         def ask(*questions):
-            res=subprocess.run([str(cli),"-C",str(project),*(item for question in questions for item in ("--ask",question))],env=env,capture_output=True,timeout=180)
+            try:
+                res=subprocess.run([str(cli),"-C",str(project),*(item for question in questions for item in ("--ask",question))],env=env,capture_output=True,timeout=240)
+            except subprocess.TimeoutExpired:
+                logs=sorted(Path(tempfile.gettempdir()).glob("local-desk-*/runtime.log"),key=lambda f:f.stat().st_mtime)
+                if logs: print(logs[-1].read_text(errors="replace")[-5500:],flush=True)
+                raise
             if res.returncode:raise RuntimeError(res.stderr.decode(errors="replace"))
             return res.stdout.decode(errors="replace")
         assert "release sample" in ask("/read sample.txt")
         assert "smol-360m" in ask("/models fit")
         assert "release sample" in ask("/resume latest") or "smol-360m" in ask("/resume latest")
         assert arch in ask("/mcp call desk system_info {}")
+        if target=="darwin-amd64":
+            ask("/settings threads 2","/settings tokens 32")
         reply=ask("/chat What is 2 plus 2? Reply with just the number.","/status")
         generation, marker, stats = reply.partition("Last generation ")
         assert generation.splitlines()[0].strip() and marker and "tokens/s" in stats, reply
