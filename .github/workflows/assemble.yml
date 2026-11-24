@@ -41,7 +41,13 @@ jobs:
             target: desktop
           - os: macos-latest
             target: desktop
-          - os: macos-latest
+          - os: ubuntu-24.04-arm
+            target: desktop
+          - os: windows-11-arm
+            target: desktop
+          - os: macos-15-intel
+            target: desktop
+          - os: macos-15-intel
             target: ios
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
