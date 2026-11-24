@@ -16,6 +16,36 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download v0.1.0 --repo jonaskuusela393-ctrl/local-desk-portable --pattern release-recipe.zip
-          echo "33ee7cc82cebe148bb9edc29c14127db50c50fe43ec53fa4472c7e1d4d947f5e  release-recipe.zip" | sha256sum --check
-          /usr/bin/python3 release_assemble.py release-recipe.zip archives --upload
+          gh release download v0.2.0 --repo jonaskuusela393-ctrl/local-desk-portable --pattern release-recipe.zip
+          echo "860c84602bf3ac4c01c038da62144e59c1cf5f37e99197a457476cc9c54fed66  release-recipe.zip" | sha256sum --check
+          /usr/bin/python3 release_assemble.py release-recipe.zip archives --upload --tag v0.2.0
+  check:
+    needs: packages
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: desktop
+          - os: windows-latest
+            target: desktop
+          - os: macos-latest
+            target: desktop
+          - os: macos-latest
+            target: ios
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - name: Check out the exact validation code
+        shell: bash
+        run: |
+          git init -q .
+          git fetch -q --depth=1 https://github.com/jonaskuusela393-ctrl/local-desk-portable.git "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Exercise packaged native client
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 check_package.py v0.2.0 "${{ matrix.target }}"
