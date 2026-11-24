@@ -1,0 +1,21 @@
+name: Assemble local release packages
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  packages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Load the release assembler
+        run: |
+          git init -q .
+          git fetch -q --depth=1 https://github.com/jonaskuusela393-ctrl/local-desk-portable.git "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Verify and upload the draft archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.1.0 --repo jonaskuusela393-ctrl/local-desk-portable --pattern release-recipe.zip
+          echo "33ee7cc82cebe148bb9edc29c14127db50c50fe43ec53fa4472c7e1d4d947f5e  release-recipe.zip" | sha256sum --check
+          /usr/bin/python3 release_assemble.py release-recipe.zip archives --upload
